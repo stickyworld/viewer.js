@@ -13,7 +13,8 @@ Crocodoc.addComponent('dragger', function (scope) {
     var $el,
         $window = $(window),
         downScrollPosition,
-        downMousePosition;
+        downMousePosition,
+        touchStartPosition;
 
     /**
      * Handle mousemove events
@@ -58,6 +59,49 @@ Crocodoc.addComponent('dragger', function (scope) {
         event.preventDefault();
     }
 
+    /**
+     * Handle touchmove events
+     * @param   {Event} event The event object
+     * @returns {void}
+     */
+    function handleTouchMove(event) {
+        $el.scrollTop(downScrollPosition.top - (event.originalEvent.targetTouches[0].pageY - touchStartPosition.y));
+        $el.scrollLeft(downScrollPosition.left - (event.originalEvent.targetTouches[0].pageX - touchStartPosition.x));
+        event.preventDefault();
+    }
+
+    /**
+     * Handle touchend events
+     * @param   {Event} event The event object
+     * @returns {void}
+     */
+    function handleTouchEnd(event) {
+        scope.broadcast('dragend');
+        $window.off('touchmove', handleTouchMove);
+        $window.off('touchend', handleTouchEnd);
+        event.preventDefault();
+    }
+
+    /**
+     * Handle touchstart events
+     * @param   {Event} event The event object
+     * @returns {void}
+     */
+    function handleTouchStart(event) {
+        scope.broadcast('dragstart');
+        downScrollPosition = {
+            top: $el.scrollTop(),
+            left: $el.scrollLeft()
+        };
+        touchStartPosition = {
+            x: event.originalEvent.targetTouches[0].pageX,
+            y: event.originalEvent.targetTouches[0].pageY
+        };
+        $window.on('touchmove', handleTouchMove);
+        $window.on('touchend', handleTouchEnd);
+        event.preventDefault();
+    }
+
     //--------------------------------------------------------------------------
     // Public
     //--------------------------------------------------------------------------
@@ -71,6 +115,7 @@ Crocodoc.addComponent('dragger', function (scope) {
         init: function (el) {
             $el = $(el);
             $el.on('mousedown', handleMousedown);
+            $el.on('touchstart', handleTouchStart);
         },
 
         /**
@@ -81,6 +126,9 @@ Crocodoc.addComponent('dragger', function (scope) {
             $el.off('mousedown', handleMousedown);
             $el.off('mousemove', handleMousemove);
             $window.off('mouseup', handleMouseup);
+            $el.off('touchstart', handleTouchStart);
+            $el.off('touchmove', handleTouchMove);
+            $window.off('touchend', handleTouchEnd);
         }
     };
 });
